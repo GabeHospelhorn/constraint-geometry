@@ -1,0 +1,439 @@
+
+<style>
+*{box-sizing:border-box}
+.w{padding:1rem 0;font-family:var(--font-sans)}
+.mode-bar{display:flex;gap:8px;margin-bottom:1rem;align-items:center;flex-wrap:wrap}
+.mode-btn{font-size:12px;padding:4px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;background:transparent;color:var(--color-text-secondary)}
+.mode-btn.active{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-primary);font-weight:500}
+.mode-note{font-size:11px;color:var(--color-text-secondary);padding:7px 11px;border-left:2px solid var(--color-border-secondary);margin-bottom:1rem;line-height:1.5}
+.tabs{display:flex;gap:5px;margin-bottom:1rem;flex-wrap:wrap}
+.tab{font-size:11px;padding:4px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;background:transparent;color:var(--color-text-secondary)}
+.tab.active{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-primary);font-weight:500}
+.tab.hi{border-color:#185FA5;color:#185FA5}
+.tab.hi.active{background:#E6F1FB}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem}
+.cg{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:9px 11px}
+.cgl{font-size:11px;color:var(--color-text-secondary);margin-bottom:5px}
+.cr{display:flex;align-items:center;gap:7px;margin-bottom:3px}
+.cr label{font-size:11px;color:var(--color-text-secondary);width:44px;flex-shrink:0}
+.cr input[type=range]{flex:1}
+.cr span{font-size:11px;font-weight:500;min-width:36px;text-align:right;color:var(--color-text-primary)}
+.stats{display:flex;gap:7px;margin-bottom:1rem;flex-wrap:wrap}
+.stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:7px 10px;flex:1;min-width:80px}
+.sl{font-size:10px;color:var(--color-text-secondary);margin-bottom:2px}
+.sv{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.sv.ok{color:#3B6D11}.sv.warn{color:#BA7517}.sv.bad{color:#A32D2D}
+.ch{position:relative;width:100%;height:290px}
+.badge{font-size:11px;padding:2px 8px;border-radius:var(--border-radius-md);font-weight:500}
+.bs{background:#EAF3DE;color:#3B6D11}.bc{background:#FCEBEB;color:#A32D2D}.bw{background:#FAEEDA;color:#854F0B}
+.fmg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:1rem}
+.fm{border-radius:var(--border-radius-md);padding:8px 10px;border:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary)}
+.fm-name{font-size:11px;font-weight:500;margin-bottom:3px;color:var(--color-text-primary)}
+.fm-cond{font-size:10px;color:var(--color-text-secondary);line-height:1.4;font-family:var(--font-mono);margin-bottom:3px}
+.fm-st{font-size:11px;font-weight:500}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:7px}
+.li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary)}
+.lc{width:18px;height:3px;border-radius:1px;flex-shrink:0}
+.norm-note{font-size:10px;color:var(--color-text-secondary);margin-top:5px;padding:5px 8px;border-left:2px solid var(--color-border-tertiary);line-height:1.4}
+</style>
+
+<div class="w">
+<h2 class="sr-only">Admissibility monitoring system v4 — normalized parallax, conjunctive detection, exposed EMA</h2>
+
+<div class="mode-bar">
+  <button class="mode-btn active" id="mb0" onclick="setMode(0)">parametric</button>
+  <button class="mode-btn" id="mb1" onclick="setMode(1)">measured proxy</button>
+  <span id="rbadge" class="badge bs">stable</span>
+  <span id="pibadge" class="badge" style="display:none"></span>
+</div>
+
+<div id="note-p" class="mode-note">Parametric mode: attenuation terms analytically specified. FTLE analytically implied, not discovered. Constructive illustration only.</div>
+<div id="note-m" class="mode-note" style="display:none">Measured proxy mode: χ(t) from actual perturbation responses on synthetic probes. Sub-potentials estimated per frame. FTLE from Δlog χ / Δt.</div>
+
+<div class="fmg">
+  <div class="fm" id="fm0">
+    <div class="fm-name">① margin collapse</div>
+    <div class="fm-cond">ΔΦ &lt; −c·σ_Φ<br>for k steps</div>
+    <div class="fm-st" id="fm0s" style="color:var(--color-text-secondary)">—</div>
+  </div>
+  <div class="fm" id="fm1">
+    <div class="fm-name">② trajectory collapse</div>
+    <div class="fm-cond">ΔΦ ≈ 0<br>dΦ/dt &lt; 0</div>
+    <div class="fm-st" id="fm1s" style="color:var(--color-text-secondary)">—</div>
+  </div>
+  <div class="fm" id="fm2">
+    <div class="fm-name">③ parallax instability</div>
+    <div class="fm-cond">Π_norm &gt; c_Π<br>∧ S(t) &lt; S_min</div>
+    <div class="fm-st" id="fm2s" style="color:var(--color-text-secondary)">—</div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="sl">t* (ΔΦ crosses)</div><div class="sv" id="st0">—</div></div>
+  <div class="stat"><div class="sl">t (M &lt; 0.5)</div><div class="sv" id="st1">—</div></div>
+  <div class="stat"><div class="sl">lead time</div><div class="sv" id="st2">—</div></div>
+  <div class="stat"><div class="sl">t̂_lead at t*−10</div><div class="sv" id="st3">—</div></div>
+  <div class="stat"><div class="sl">Π_norm first ↑</div><div class="sv" id="st4">—</div></div>
+  <div class="stat"><div class="sl">parallax lead</div><div class="sv" id="st5">—</div></div>
+  <div class="stat"><div class="sl">σ²_baseline</div><div class="sv" id="st6">—</div></div>
+</div>
+
+<div class="controls">
+  <div class="cg">
+    <div class="cgl">structural decay</div>
+    <div class="cr"><label>k_B</label><input type="range" id="kB" min=".001" max=".02" step=".001" value=".006"><span id="kBv">.006</span></div>
+    <div class="cr"><label>k_P</label><input type="range" id="kP" min=".001" max=".02" step=".001" value=".004"><span id="kPv">.004</span></div>
+  </div>
+  <div class="cg">
+    <div class="cgl">attenuation growth</div>
+    <div class="cr"><label>k_χ</label><input type="range" id="kX" min=".001" max=".02" step=".001" value=".006"><span id="kXv">.006</span></div>
+    <div class="cr"><label>k_E</label><input type="range" id="kE" min=".001" max=".02" step=".001" value=".005"><span id="kEv">.005</span></div>
+  </div>
+  <div class="cg">
+    <div class="cgl">threshold & lag</div>
+    <div class="cr"><label>τ</label><input type="range" id="tau" min="-1.0" max=".5" step=".05" value="-.2"><span id="tauv">−.20</span></div>
+    <div class="cr"><label>lag ℓ</label><input type="range" id="lag" min="5" max="50" step="1" value="20"><span id="lagv">20</span></div>
+  </div>
+  <div class="cg">
+    <div class="cgl">parallax detection</div>
+    <div class="cr"><label>c_Π</label><input type="range" id="cpi" min="1" max="5" step="1" value="3"><span id="cpiv">2.0×</span></div>
+    <div class="cr"><label>S_min</label><input type="range" id="smin" min="1" max="4" step="1" value="2"><span id="sminv">0.67</span></div>
+    <div class="cr"><label>dwell k</label><input type="range" id="dwell" min="1" max="10" step="1" value="3"><span id="dwellv">3</span></div>
+  </div>
+  <div class="cg">
+    <div class="cgl">noise floor</div>
+    <div class="cr"><label>c·σ</label><input type="range" id="csig" min="1" max="4" step="1" value="2"><span id="csigv">1.5×</span></div>
+    <div class="cr"><label>T_stable</label><input type="range" id="tstab" min="10" max="60" step="5" value="30"><span id="tstabv">30</span></div>
+  </div>
+  <div class="cg">
+    <div class="cgl">EMA smoothing α</div>
+    <div class="cr"><label>α</label><input type="range" id="ema" min="1" max="6" step="1" value="3"><span id="emav">0.15</span></div>
+    <div class="norm-note" id="norm-note">Π_norm = Π(t) / σ²_baseline. Threshold c_Π is a dimensionless multiplier anchored to the system's own stable regime — comparable across runs.</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="sw(0)">margin vs performance</button>
+  <button class="tab" onclick="sw(1)">term contributions</button>
+  <button class="tab" onclick="sw(2)">derivatives & FTLE</button>
+  <button class="tab" onclick="sw(3)">phase plane</button>
+  <button class="tab hi" onclick="sw(4)">parallax Π_norm & S(t)</button>
+</div>
+<div class="legend" id="leg"></div>
+
+<div class="ch"><canvas id="c0" role="img" aria-label="Admissibility margin and lagged performance"></canvas></div>
+<div class="ch" style="display:none"><canvas id="c1" role="img" aria-label="Sub-potential contributions per frame"></canvas></div>
+<div class="ch" style="display:none"><canvas id="c2" role="img" aria-label="Derivatives and FTLE proxy"></canvas></div>
+<div class="ch" style="display:none"><canvas id="c3" role="img" aria-label="Phase plane structural vs attenuation"></canvas></div>
+<div class="ch" style="display:none"><canvas id="c4" role="img" aria-label="Normalized parallax divergence and sign coherence"></canvas></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+let CH=Array(5).fill(null), TAB=0, MODE=0;
+
+const cpiLevels=[1,1.5,2,3,5];
+const sminLevels=[0.34,0.5,0.67,1.0];
+const csigLevels=[1,1.5,2,2.5];
+const emaLevels=[0.05,0.1,0.15,0.2,0.3,0.4];
+
+function gv(id){return parseFloat(document.getElementById(id).value)}
+function gi(id){return parseInt(document.getElementById(id).value)}
+
+function getP(){
+  return{
+    kB:gv('kB'),kP:gv('kP'),kX:gv('kX'),kE:gv('kE'),
+    tau:gv('tau'),lag:gi('lag'),
+    cPi:cpiLevels[gi('cpi')-1],
+    Smin:sminLevels[gi('smin')-1],
+    dwell:gi('dwell'),
+    cSig:csigLevels[gi('csig')-1],
+    Tstab:gi('tstab'),
+    alpha:emaLevels[gi('ema')-1]
+  };
+}
+
+function rng42(){let s=42;return()=>{s=(s*9301+49297)%233280;return s/233280}}
+
+function ema(arr,a){
+  let v=arr[0];
+  return arr.map(x=>{v=a*x+(1-a)*v;return v});
+}
+
+function run(p){
+  const T=200,t=Array.from({length:T},(_,i)=>i);
+  const noise=MODE===1, rng=rng42();
+
+  // --- raw terms ---
+  const B =t.map(i=>Math.exp(-p.kB*i)*(1+(noise?(rng()-.5)*.08:0)));
+  const Pt=t.map(i=>Math.exp(-p.kP*i)*(1+(noise?(rng()-.5)*.06:0)));
+  const X =t.map(i=>Math.exp( p.kX*i)*(1+(noise?(rng()-.5)*.10:0)));
+  const E =t.map(i=>Math.exp( p.kE*i)*(1+(noise?(rng()-.5)*.07:0)));
+
+  const lB=B.map(v=>Math.log(Math.max(v,1e-9)));
+  const lP=Pt.map(v=>Math.log(Math.max(v,1e-9)));
+  const lX=X.map(v=>Math.log(Math.max(v,1e-9)));
+  const lE=E.map(v=>Math.log(Math.max(v,1e-9)));
+
+  // --- three frames ---
+  const Ph_rep=t.map(i=>lB[i]+lP[i]);
+  const Ph_fun=t.map(i=>-lE[i]);
+  const Ph_per=t.map(i=>-lX[i]);
+  const Phi   =t.map(i=>Ph_rep[i]+Ph_fun[i]+Ph_per[i]);
+
+  // --- rates with EMA (smoothed in log-domain before aggregation) ---
+  const a=p.alpha;
+  const raw_dR=t.map(i=>i===0?0:Ph_rep[i]-Ph_rep[i-1]);
+  const raw_dF=t.map(i=>i===0?0:Ph_fun[i]-Ph_fun[i-1]);
+  const raw_dP=t.map(i=>i===0?0:Ph_per[i]-Ph_per[i-1]);
+  const dR=ema(raw_dR,a), dF=ema(raw_dF,a), dP=ema(raw_dP,a);
+
+  const dPhi=t.map(i=>i===0?0:Phi[i]-Phi[i-1]);
+  const dPhiS=ema(dPhi,a);
+  const d2Phi=t.map(i=>i<2?0:dPhiS[i]-dPhiS[i-1]);
+  const ftle=t.map(i=>i===0?0:lX[i]/i);
+
+  // --- Π(t): raw variance across three smoothed rates ---
+  const PiRaw=t.map(i=>{
+    const vs=[dR[i],dF[i],dP[i]];
+    const mn=(vs[0]+vs[1]+vs[2])/3;
+    return vs.reduce((a,v)=>a+(v-mn)**2,0)/3;
+  });
+
+  // --- baseline σ² from T_stable window ---
+  const Tstab=Math.min(p.Tstab,T-1);
+  const piBase=PiRaw.slice(0,Tstab);
+  const piBaseMean=piBase.reduce((a,v)=>a+v,0)/Tstab;
+  const sig2base=Math.max(piBase.reduce((a,v)=>a+(v-piBaseMean)**2,0)/Tstab, 1e-12);
+
+  // --- Π_norm ---
+  const PiNorm=PiRaw.map(v=>v/sig2base);
+
+  // --- S(t): fraction of frames matching modal sign ---
+  const S=t.map(i=>{
+    const vs=[dR[i],dF[i],dP[i]];
+    const pos=vs.filter(v=>v>0).length;
+    const neg=vs.filter(v=>v<0).length;
+    return Math.max(pos,neg)/3;
+  });
+
+  // --- Delta, performance ---
+  const Delta=Phi.map(v=>v-p.tau);
+
+  // noise floor τ_eff from stable window
+  const dStab=Delta.slice(0,Tstab);
+  const dMean=dStab.reduce((a,v)=>a+v,0)/Tstab;
+  const sigPhi=Math.sqrt(dStab.reduce((a,v)=>a+(v-dMean)**2,0)/Tstab);
+  const tauEff=-(p.cSig*sigPhi);
+
+  const lag=p.lag;
+  const Dl=t.map(i=>i<lag?Delta[0]:Delta[i-lag]);
+  const M=Dl.map(d=>1/(1+Math.exp(-d/.05)));
+
+  // --- t* with dwell ---
+  let tstar=-1;
+  for(let i=0;i<T-p.dwell;i++){
+    if(Delta[i]<tauEff){
+      let ok=true;
+      for(let j=1;j<p.dwell;j++) if(Delta[i+j]>=tauEff){ok=false;break}
+      if(ok){tstar=i;break}
+    }
+  }
+  const tperf=M.findIndex(m=>m<.5);
+
+  // t_lead estimate
+  const tlead=t.map(i=>{
+    const d=dPhiS[i];
+    return d<-1e-6?Delta[i]/(-d):null;
+  });
+
+  // --- parallax detection: conjunctive Π_norm > c_Π AND S < S_min, dwell ---
+  let tPi=-1;
+  for(let i=1;i<T-p.dwell;i++){
+    if(Delta[i]>0 && PiNorm[i]>p.cPi && S[i]<p.Smin){
+      let ok=true;
+      for(let j=1;j<p.dwell;j++)
+        if(PiNorm[i+j]<=p.cPi||S[i+j]>=p.Smin||Delta[i+j]<=0){ok=false;break}
+      if(ok){tPi=i;break}
+    }
+  }
+
+  return{t,B,Pt,X,E,lB,lP,lX,lE,
+    Ph_rep,Ph_fun,Ph_per,Phi,Delta,M,
+    dR,dF,dP,dPhi:dPhiS,d2Phi,ftle,
+    PiNorm,S,sig2base,sigPhi,tauEff,
+    tstar,tperf,tlead,tPi};
+}
+
+function updateStats(sim,p){
+  const{tstar,tperf,tlead,tPi,Delta,dPhi,sig2base,sigPhi}=sim;
+  const lead=tstar>=0&&tperf>tstar?tperf-tstar:null;
+  const tl=tstar>10?tlead[tstar-10]:null;
+  const piLead=tPi>=0&&tstar>=0?tstar-tPi:null;
+
+  const el=(id,txt,cls)=>{
+    const e=document.getElementById(id);
+    e.textContent=txt;
+    e.className='sv'+(cls?' '+cls:'');
+  };
+  el('st0',tstar>=0?`t=${tstar}`:'none',tstar>=0?'bad':'ok');
+  el('st1',tperf>=0?`t=${tperf}`:'none');
+  el('st2',lead!=null?`${lead} steps`:tstar<0?'no collapse':'—',lead>0?'ok':'warn');
+  el('st3',tl!=null?`${tl.toFixed(1)}`:'—','warn');
+  el('st4',tPi>=0?`t=${tPi}`:'none',tPi>=0?'warn':'ok');
+  el('st5',piLead!=null?`${piLead} before t*`:tPi<0?'no signal':'—',piLead>0?'ok':'');
+  el('st6',sig2base.toExponential(2));
+
+  // regime badges
+  const rb=document.getElementById('rbadge');
+  rb.textContent=tstar<0?'stable':'collapse';
+  rb.className='badge '+(tstar<0?'bs':'bc');
+  const pb=document.getElementById('pibadge');
+  if(tPi>=0&&(tstar<0||tPi<tstar)){
+    pb.style.display='';pb.textContent='parallax warning';pb.className='badge bw';
+  } else pb.style.display='none';
+
+  // failure mode cards
+  const fmSet=(id,active,label,col)=>{
+    document.getElementById(id+'s').textContent=active?label:'not detected';
+    document.getElementById(id+'s').style.color=active?col:'var(--color-text-secondary)';
+    document.getElementById(id).style.borderColor=active?col:'var(--color-border-tertiary)';
+  };
+  fmSet('fm0',tstar>=0,'detected','#A32D2D');
+  fmSet('fm1',tstar>=0&&dPhi[Math.max(tstar-3,0)]<0,'detected','#BA7517');
+  fmSet('fm2',tPi>=0&&(tstar<0||tPi<tstar),'detected — precedes t*','#185FA5');
+}
+
+const C={delta:'#185FA5',M:'#639922',sep:'#E24B4A',
+  rep:'#1D9E75',fun:'#378ADD',per:'#D85A30',
+  dph:'#534AB7',d2:'#993556',ftl:'#D85A30',
+  Pi:'#BA7517',S:'#185FA5',pTh:'#E24B4A'};
+
+const LEGS={
+  0:[['ΔΦ margin',C.delta],['separatrix (τ_eff)',C.sep],['M(t) performance',C.M]],
+  1:[['Φ_rep (representation)',C.rep],['Φ_func (functional)',C.fun],['Φ_pert (perturbation)',C.per]],
+  2:[['dΦ/dt (EMA)',C.dph],['d²Φ/dt²',C.d2],['FTLE proxy',C.ftl]],
+  3:[['trajectory',C.delta],['separatrix',C.sep]],
+  4:[['Π_norm(t)',C.Pi],['c_Π threshold',C.pTh],['S(t) coherence',C.S],['dΦ_rep/dt',C.rep],['dΦ_func/dt',C.fun],['dΦ_pert/dt',C.per]]
+};
+
+function buildLeg(tab){
+  const row=document.getElementById('leg');
+  row.innerHTML='';
+  (LEGS[tab]||[]).forEach(([label,color])=>{
+    const s=document.createElement('span');s.className='li';
+    s.innerHTML=`<span class="lc" style="background:${color}"></span>${label}`;
+    row.appendChild(s);
+  });
+}
+
+function buildCharts(sim,p){
+  const{t,B,Pt,X,E,Ph_rep,Ph_fun,Ph_per,Delta,M,dPhi,d2Phi,ftle,PiNorm,S,dR,dF,dP,tauEff,sig2base}=sim;
+  const zero=t.map(()=>0);
+  const tauLine=t.map(()=>tauEff);
+  const cpiLine=t.map(()=>p.cPi);
+  const sminLine=t.map(()=>p.Smin);
+
+  const base={responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},
+    scales:{
+      x:{ticks:{color:'#888780',font:{size:10},callback:(v,i)=>i%40===0?i:''}},
+      y:{ticks:{color:'#888780',font:{size:10},callback:v=>v.toFixed(2)}}
+    }};
+
+  function mk(idx,cfg){
+    if(CH[idx])CH[idx].destroy();
+    CH[idx]=new Chart(document.getElementById('c'+idx),cfg);
+  }
+
+  mk(0,{type:'line',data:{labels:t,datasets:[
+    {label:'ΔΦ',data:Delta,borderColor:C.delta,borderWidth:2,pointRadius:0,tension:.3},
+    {label:'τ_eff',data:tauLine,borderColor:C.sep,borderWidth:1,borderDash:[5,4],pointRadius:0},
+    {label:'M(t)',data:M,borderColor:C.M,borderWidth:2,pointRadius:0,tension:.3,borderDash:[3,2]}
+  ]},options:base});
+
+  mk(1,{type:'line',data:{labels:t,datasets:[
+    {label:'Φ_rep',data:Ph_rep,borderColor:C.rep,borderWidth:2,pointRadius:0,tension:.3},
+    {label:'Φ_func',data:Ph_fun,borderColor:C.fun,borderWidth:2,pointRadius:0,tension:.3,borderDash:[4,3]},
+    {label:'Φ_pert',data:Ph_per,borderColor:C.per,borderWidth:2,pointRadius:0,tension:.3,borderDash:[2,2]}
+  ]},options:base});
+
+  mk(2,{type:'line',data:{labels:t,datasets:[
+    {label:'dΦ/dt',data:dPhi,borderColor:C.dph,borderWidth:2,pointRadius:0,tension:.3},
+    {label:'d²Φ/dt²',data:d2Phi,borderColor:C.d2,borderWidth:1.5,pointRadius:0,tension:.3,borderDash:[3,2]},
+    {label:'FTLE',data:ftle,borderColor:C.ftl,borderWidth:1.5,pointRadius:0,tension:.3,borderDash:[6,3]},
+    {label:'zero',data:zero,borderColor:'#B4B2A9',borderWidth:1,borderDash:[2,3],pointRadius:0}
+  ]},options:base});
+
+  const s=t.map(i=>Ph_rep[i]);
+  const a=t.map(i=>-Ph_fun[i]-Ph_per[i]);
+  const smin=Math.min(...s),smax=Math.max(...s);
+  mk(3,{type:'scatter',data:{datasets:[
+    {label:'trajectory',data:t.map(i=>({x:s[i],y:a[i]})),
+      borderColor:C.delta,backgroundColor:C.delta,
+      pointRadius:t.map(i=>i===0?5:1.5),showLine:true,tension:.2,borderWidth:1.5},
+    {label:'separatrix',
+      data:[{x:smin,y:smin-p.tau},{x:smax,y:smax-p.tau}],
+      borderColor:C.sep,borderWidth:1.5,borderDash:[5,4],pointRadius:0,showLine:true}
+  ]},options:{...base,scales:{
+    x:{title:{display:true,text:'s = Φ_rep',color:'#888780',font:{size:10}},
+       ticks:{color:'#888780',font:{size:10},callback:v=>v.toFixed(1)}},
+    y:{title:{display:true,text:'a = −Φ_func − Φ_pert',color:'#888780',font:{size:10}},
+       ticks:{color:'#888780',font:{size:10},callback:v=>v.toFixed(1)}}
+  }}});
+
+  mk(4,{type:'line',data:{labels:t,datasets:[
+    {label:'Π_norm',data:PiNorm,borderColor:C.Pi,borderWidth:2,pointRadius:0,tension:.3},
+    {label:'c_Π',data:cpiLine,borderColor:C.pTh,borderWidth:1,borderDash:[4,3],pointRadius:0},
+    {label:'S(t)',data:S,borderColor:C.S,borderWidth:1.5,pointRadius:0,tension:.3,borderDash:[3,2]},
+    {label:'S_min',data:sminLine,borderColor:C.S,borderWidth:1,borderDash:[2,4],pointRadius:0,borderColor:'#888780'},
+    {label:'dΦ_rep/dt',data:dR,borderColor:C.rep,borderWidth:1,pointRadius:0,tension:.3,borderDash:[2,2]},
+    {label:'dΦ_func/dt',data:dF,borderColor:C.fun,borderWidth:1,pointRadius:0,tension:.3,borderDash:[2,4]},
+    {label:'dΦ_pert/dt',data:dP,borderColor:C.per,borderWidth:1,pointRadius:0,tension:.3,borderDash:[6,2]}
+  ]},options:base});
+}
+
+function sw(idx){
+  TAB=idx;
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',i===idx));
+  for(let i=0;i<5;i++) document.getElementById('c'+i).parentElement.style.display=i===idx?'block':'none';
+  buildLeg(idx);
+}
+
+function setMode(m){
+  MODE=m;
+  ['mb0','mb1'].forEach((id,i)=>document.getElementById(id).classList.toggle('active',i===m));
+  document.getElementById('note-p').style.display=m===0?'block':'none';
+  document.getElementById('note-m').style.display=m===1?'block':'none';
+  refresh();
+}
+
+function refresh(){
+  const p=getP();
+  const sim=run(p);
+  updateStats(sim,p);
+  buildCharts(sim,p);
+  buildLeg(TAB);
+}
+
+const SLIDERS=[
+  ['kB','kBv',v=>v.toFixed(3)],['kP','kPv',v=>v.toFixed(3)],
+  ['kX','kXv',v=>v.toFixed(3)],['kE','kEv',v=>v.toFixed(3)],
+  ['tau','tauv',v=>v<0?'−'+Math.abs(v).toFixed(2):v.toFixed(2)],
+  ['lag','lagv',v=>parseInt(v)],
+  ['cpi','cpiv',v=>cpiLevels[parseInt(v)-1]+'×'],
+  ['smin','sminv',v=>sminLevels[parseInt(v)-1].toFixed(2)],
+  ['dwell','dwellv',v=>parseInt(v)],
+  ['csig','csigv',v=>csigLevels[parseInt(v)-1]+'×'],
+  ['tstab','tstabv',v=>parseInt(v)],
+  ['ema','emav',v=>emaLevels[parseInt(v)-1].toFixed(2)]
+];
+SLIDERS.forEach(([id,vid,fmt])=>{
+  document.getElementById(id).addEventListener('input',function(){
+    document.getElementById(vid).textContent=fmt(parseFloat(this.value));
+    refresh();
+  });
+});
+
+refresh();
+</script>
