@@ -1,17 +1,69 @@
-# Admissibility Monitoring Artifact
+# Admissibility Monitor
 
-This repository contains the interactive simulation accompanying:
+Detecting pre-collapse instability in AI systems via admissibility geometry and multi-view consistency.
 
-**Detecting Pre-Collapse Instability in AI Systems via Admissibility and Multi-View Consistency**
+## Paper
 
-## Demo
+**Detecting Pre-Collapse Instability in AI Systems via Admissibility Geometry and Multi-View Consistency**  
+Gabe Hospelhorn, 2026
 
-Open the interactive artifact:
+This paper introduces an admissibility-based observability framework for detecting instability in AI systems before degradation appears in output behavior.
 
-➡️ [Launch simulation](./lyapunov_toy_v4_defensible.html)
+## Core Idea
 
-## Notes
+Current AI governance frameworks often monitor what models do:
 
-- This artifact illustrates the admissibility potential Φ and parallax instability detection protocol.
-- It is intended as a visual and exploratory supplement.
-- All claims in the paper are reproducible without this artifact.
+- accuracy
+- loss
+- reward
+- benchmark behavior
+- audit outcomes
+
+This work proposes monitoring the geometry of model representations instead.
+
+A system need not be failing to be unstable; it need only become inconsistent across distinct observational views.
+
+## Contribution
+
+The paper introduces:
+
+- a Lyapunov-like admissibility potential `Phi`
+- a geometric state signal `DeltaPhi`
+- a dynamical flow signal `dPhi/dt`
+- a multi-view consistency condition
+- a novel failure mode: **parallax instability**
+- a noise-aware conjunctive detection protocol
+
+## Parallax Instability
+
+Parallax instability occurs when a system remains admissible in aggregate while becoming inconsistent across distinct observational frames:
+
+- representational
+- functional
+- perturbational
+
+This can appear before separatrix crossing and before observable performance degradation.
+
+## Interactive Artifact
+
+The interactive monitor is available here:
+
+https://gabehospelhorn.github.io/constraint-geometry/admissibility-monitor.html
+
+## Monitoring Architecture
+
+| Layer | Signal | Question |
+|---|---|---|
+| Geometry | `DeltaPhi(t)` | Where is the system relative to the boundary? |
+| Dynamics | `dPhi/dt` | Is it moving toward or away from instability? |
+| Coherence | `Pi_norm(t), S(t)` | Do observational frames agree? |
+| Robustness | `sigma_Phi, c, k` | Is the signal real? |
+
+## Status
+
+This repository accompanies the arXiv paper and supplementary artifact.
+
+The simulation is constructive rather than empirical. It demonstrates ordering:
+
+```text
+t_Pi < t* < t_perf
