@@ -49,6 +49,9 @@ This can appear before separatrix crossing and before observable performance deg
 The interactive monitor is available here:
 
 https://gabehospelhorn.github.io/constraint-geometry/admissibility-monitor.html
+
+The interactive monitor for reorganization is available here:
+
 https://gabehospelhorn.github.io/constraint-geometry/reorganization-vs-collapse.html
 
 ## Monitoring Architecture
