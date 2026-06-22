@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reorganization vs Collapse — Admissibility Monitor</title>
+<style>
+:root{
+  --bg:#121013;--bg-raise:#1A171B;--bg-inset:#0D0B0E;--rule:#2A262C;--rule-soft:#221E24;
+  --ink:#ECE7E1;--ink-dim:#9A938C;--ink-faint:#635C58;
+  --amber:#F2A93B;--amber-dim:#B8801F;
+  --s-margin:#8FB4D9;--s-burden:#D9714E;--s-rep:#7FB069;--s-fun:#C9A227;--s-per:#C77B53;
+  --s-dph:#9E8CC4;--s-d2:#B0607A;--s-sep:#E0563F;--s-perf:#7FB069;
+  --ok:#7FB069;--warn:#E0A33B;--bad:#E0563F;
+  --ok-bg:rgba(127,176,105,.12);--warn-bg:rgba(224,163,59,.12);--bad-bg:rgba(224,86,63,.12);
+  --font-ui:"Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;
+  --font-mono:"SFMono-Regular","JetBrains Mono",Consolas,"Liberation Mono",Menlo,monospace;
+  --radius:3px;
+}
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.shell{max-width:1080px;margin:0 auto;padding:40px 26px 72px}
+.masthead{border-bottom:1px solid var(--rule);padding-bottom:18px;margin-bottom:26px}
+.crumb{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;color:var(--ink-faint);margin-bottom:14px}
+.crumb a{color:var(--ink-dim);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:1px}
+.crumb a:hover{color:var(--amber);border-bottom-color:var(--amber-dim)}
+.crumb a[aria-current]{color:var(--amber)}
+.crumb .sep{color:var(--rule)}
+.title-row{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+h1{font-weight:600;font-size:clamp(21px,3vw,28px);letter-spacing:-.01em;margin:0;color:var(--ink)}
+.unit-tag{font-family:var(--font-mono);font-size:11px;color:var(--ink-faint);letter-spacing:.06em;white-space:nowrap}
+.lede{font-size:13.5px;color:var(--ink-dim);max-width:780px;margin:14px 0 0;line-height:1.6}
+.lede b{color:var(--ink);font-weight:600}
+.thesis{font-size:13px;color:var(--ink);line-height:1.55;border-left:2px solid var(--amber);padding:7px 0 7px 14px;margin:18px 0 0;max-width:800px}
+.bar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:24px 0 14px}
+.seg{font-family:var(--font-mono);font-size:11.5px;padding:5px 12px;border:1px solid var(--rule);border-radius:var(--radius);cursor:pointer;background:transparent;color:var(--ink-dim);transition:.12s;letter-spacing:.02em}
+.seg:hover{border-color:var(--ink-faint);color:var(--ink)}
+.seg.active{background:var(--bg-raise);border-color:var(--amber-dim);color:var(--amber)}
+.seg:focus-visible{outline:1.5px solid var(--amber);outline-offset:2px}
+.note{font-size:11.5px;color:var(--ink-dim);border-left:2px solid var(--rule);padding:6px 12px;margin:0 0 18px;line-height:1.55;font-family:var(--font-mono)}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 18px}
+@media(max-width:640px){.controls{grid-template-columns:1fr}}
+.cg{background:var(--bg-raise);border:1px solid var(--rule);border-radius:var(--radius);padding:11px 13px}
+.cgl{font-family:var(--font-mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px}
+.cr{display:flex;align-items:center;gap:9px;margin-bottom:5px}
+.cr label{font-family:var(--font-mono);font-size:11px;color:var(--ink-dim);width:72px;flex-shrink:0;line-height:1.25}
+.cr span{font-family:var(--font-mono);font-size:11px;font-weight:500;min-width:42px;text-align:right;color:var(--amber)}
+.cr input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:2px;background:var(--rule);border-radius:2px;outline:none}
+.cr input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;border-radius:50%;background:var(--amber);cursor:pointer;border:2px solid var(--bg-raise)}
+.cr input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--amber);cursor:pointer;border:2px solid var(--bg-raise)}
+.cr input[type=range]:focus-visible::-webkit-slider-thumb{outline:1.5px solid var(--amber);outline-offset:2px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 18px}
+@media(max-width:680px){.pair{grid-template-columns:1fr}}
+.scen{background:var(--bg-raise);border:1px solid var(--rule);border-radius:var(--radius);padding:13px 14px}
+.scen.collapse{border-top:2px solid var(--s-burden)}
+.scen.reorg{border-top:2px solid var(--s-rep)}
+.scen-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:3px}
+.scen-h .nm{font-family:var(--font-mono);font-size:12.5px;color:var(--ink)}
+.scen-sub{font-size:11px;color:var(--ink-dim);line-height:1.5;margin-bottom:10px}
+.well{position:relative;width:100%;background:var(--bg-inset);border:1px solid var(--rule);border-radius:var(--radius);padding:8px;margin-bottom:9px}
+.ch-sm{position:relative;width:100%;height:210px}
+.legend{display:flex;gap:13px;flex-wrap:wrap;margin:0 0 8px;padding-left:2px}
+.li{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;color:var(--ink-dim)}
+.lc{width:14px;height:2px;flex-shrink:0}
+.verdict{font-size:10.5px;color:var(--ink-dim);line-height:1.55;border-top:1px solid var(--rule);padding-top:9px}
+.verdict b{color:var(--ink);font-weight:600}
+.badge{font-family:var(--font-mono);font-size:10px;padding:2px 8px;border-radius:var(--radius);font-weight:500;white-space:nowrap;letter-spacing:.02em}
+.b-ok{background:var(--ok-bg);color:var(--ok)}.b-bad{background:var(--bad-bg);color:var(--bad)}.b-warn{background:var(--warn-bg);color:var(--warn)}
+.block{background:var(--bg-raise);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 16px;margin:0 0 18px}
+.block-h{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--amber);margin-bottom:9px}
+.block p{font-size:12px;color:var(--ink-dim);line-height:1.65;margin:0 0 9px}
+.block p:last-child{margin-bottom:0}
+.block em{color:var(--ink);font-style:normal;font-weight:600}
+.rule-box{font-family:var(--font-mono);font-size:11px;line-height:1.75;color:var(--ink);border-left:2px solid var(--s-rep);padding:9px 13px;margin:0 0 9px;background:var(--bg-inset);border-radius:var(--radius)}
+.rule-box .up{color:var(--s-burden)}.rule-box .down{color:var(--s-rep)}
+.scope{font-size:10.5px;color:var(--ink-faint);line-height:1.65;border-left:2px solid var(--rule-soft);padding:7px 13px;margin-top:18px}
+.scope b{color:var(--ink-dim)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<div class="masthead">
+  <nav class="crumb" aria-label="Supplementary artifacts">
+    <span>admissibility instruments</span>
+    <span class="sep">/</span>
+    <a href="admissibility-monitor.html">monitor</a>
+    <a href="reorganization-vs-collapse.html" aria-current="page">reorganization vs collapse</a>
+  </nav>
+  <div class="title-row">
+    <h1>Reorganization vs Collapse</h1>
+    <span class="unit-tag">Π_norm · ΔΦ · E</span>
+  </div>
+  <p class="lede">A natural objection: parallax flags that a system is <b>leaving its current basin</b>, but reorganization and collapse both involve change. Does the signal confuse a system coming apart with one reorganizing into something better? This module reuses the monitor's estimators and shows the two cases have different signatures.</p>
+  <p class="thesis">Collapse is coherent decline: frames fall together, so parallax stays low while the margin erodes. Reorganization is a parallax excursion that resolves: frames disagree transiently, then re-cohere, and the contradiction burden settles back down rather than climbing.</p>
+</div>
+
+<h2 class="sr-only">Reorganization versus collapse comparison</h2>
+
+<div class="bar">
+  <button class="seg active" id="m2b0" onclick="setMode2(0)">parametric</button>
+  <button class="seg" id="m2b1" onclick="setMode2(1)">measured proxy</button>
+</div>
+<div id="note2-p" class="note">Parametric mode: collapse uses monotone decay/growth; reorganization uses a transient disturbance with structural rebound and burden settling. Constructive illustration only.</div>
+<div id="note2-m" class="note" style="display:none">Measured proxy mode: observation noise added to all four terms. Π_norm and S(t) estimated per frame from smoothed rates, identical to the main monitor.</div>
+
+<div class="controls">
+  <div class="cg">
+    <div class="cgl">transition</div>
+    <div class="cr"><label>onset t₀</label><input type="range" id="r_onset" min="40" max="140" step="1" value="90"><span id="r_onsetv">90</span></div>
+    <div class="cr"><label>width w</label><input type="range" id="r_width" min="8" max="50" step="1" value="22"><span id="r_widthv">22</span></div>
+  </div>
+  <div class="cg">
+    <div class="cgl">reorganization depth</div>
+    <div class="cr"><label>dip</label><input type="range" id="r_dip" min="20" max="70" step="1" value="50"><span id="r_dipv">0.50</span></div>
+    <div class="cr"><label>E gain</label><input type="range" id="r_egain" min="40" max="220" step="5" value="160"><span id="r_egainv">1.60</span></div>
+  </div>
+  <div class="cg">
+    <div class="cgl">parallax detection</div>
+    <div class="cr"><label>c_Π</label><input type="range" id="r_cpi" min="1" max="5" step="1" value="3"><span id="r_cpiv">2.0×</span></div>
+    <div class="cr"><label>S_min</label><input type="range" id="r_smin" min="1" max="4" step="1" value="2"><span id="r_sminv">0.67</span></div>
+  </div>
+  <div class="cg">
+    <div class="cgl">smoothing &amp; dwell</div>
+    <div class="cr"><label>EMA α</label><input type="range" id="r_ema" min="1" max="6" step="1" value="3"><span id="r_emav">0.15</span></div>
+    <div class="cr"><label>dwell</label><input type="range" id="r_dwell" min="1" max="10" step="1" value="3"><span id="r_dwellv">3</span></div>
+  </div>
+</div>
+
+<div class="pair">
+  <div class="scen collapse">
+    <div class="scen-h"><span class="nm">① collapse</span><span class="badge b-bad" id="v0badge">coming apart</span></div>
+    <div class="scen-sub">Frames decline together (high coherence, low parallax). Margin erodes monotonically; burden keeps rising.</div>
+    <div class="legend">
+      <span class="li"><span class="lc" style="background:#F2A93B"></span>Π_norm</span>
+      <span class="li"><span class="lc" style="background:#8FB4D9"></span>ΔΦ</span>
+      <span class="li"><span class="lc" style="background:#D9714E"></span>burden E</span>
+    </div>
+    <div class="well"><div class="ch-sm"><canvas id="rc0" role="img" aria-label="Collapse scenario time series"></canvas></div></div>
+    <div class="verdict"><b>Low parallax, rising burden, monotone margin loss.</b> The frames agree on the way down, so this is not a parallax event; it is coherent decline. Burden never settles and ΔΦ crosses and stays crossed.</div>
+  </div>
+  <div class="scen reorg">
+    <div class="scen-h"><span class="nm">② reorganization</span><span class="badge b-ok" id="v1badge">reorganizing</span></div>
+    <div class="scen-sub">Frames diverge transiently (parallax spike), then re-cohere. Structural terms dip and recover; burden settles back down.</div>
+    <div class="legend">
+      <span class="li"><span class="lc" style="background:#F2A93B"></span>Π_norm</span>
+      <span class="li"><span class="lc" style="background:#8FB4D9"></span>ΔΦ</span>
+      <span class="li"><span class="lc" style="background:#D9714E"></span>burden E</span>
+    </div>
+    <div class="well"><div class="ch-sm"><canvas id="rc1" role="img" aria-label="Reorganization scenario time series"></canvas></div></div>
+    <div class="verdict"><b>Parallax spikes, then resolves; burden returns below baseline.</b> Frames disagree during the transition and re-cohere afterward. ΔΦ dips toward the boundary and recovers. The system passed into a more self-consistent state.</div>
+  </div>
+</div>
+
+<div class="block">
+  <div class="block-h">the observable difference</div>
+  <p>Two separations do the work. First, <em>coherence</em>: collapse declines coherently, so its parallax stays near baseline, while reorganization produces a genuine parallax excursion with low sign coherence. Second, for any run that does show a parallax excursion, the direction of the contradiction burden after the peak separates adaptation from pathology.</p>
+  <div class="rule-box">
+    sign(dE/dt) after the parallax peak:<br>
+    &nbsp;&nbsp;<span class="up">dE/dt &gt; 0 &nbsp;(burden still rising)</span> &rarr; pathology / collapse signature<br>
+    &nbsp;&nbsp;<span class="down">dE/dt &le; 0 &nbsp;(burden falling / settling)</span> &rarr; reorganization signature
+  </div>
+  <p>This is partly retrospective by necessity: confirming reorganization requires watching it resolve. The monitor still earns its keep: it flags the regime that warrants attention, and the burden trajectory tells you which kind it was, often well before behavior would have revealed it.</p>
+</div>
+
+<p class="scope"><b>Scope.</b> Constructive simulation under specified parametric dynamics, not validation on real model checkpoints. It demonstrates that the discriminator is present in the framework (collapse and reorganization differ in the sign of post-peak burden growth), not that any particular threshold transfers to a real system. The framework detects instability, leaving the current basin, not pathology, whether the destination is bad. Pathology is a downstream, partly normative judgment, which is why detection is kept separate from control.</p>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+(function(){
+"use strict";
+let CH2=[null,null], MODE2=0;
+const cpiLevels2=[1,1.5,2,3,5],sminLevels2=[0.34,0.5,0.67,1.0],emaLevels2=[0.05,0.1,0.15,0.2,0.3,0.4];
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+const C2={Pi:cssv('--amber'),delta:cssv('--s-margin'),E:cssv('--s-burden'),
+  grid:cssv('--rule'),tick:cssv('--ink-faint'),zero:cssv('--ink-faint')};
+function gi(id){return parseInt(document.getElementById(id).value)}
+function rng42(){let s=42;return()=>{s=(s*9301+49297)%233280;return s/233280}}
+function ema(arr,a){let v=arr[0];return arr.map(x=>{v=a*x+(1-a)*v;return v})}
+function bump(i,c,w){const z=(i-c)/w;return Math.exp(-z*z)}
+function sigmoid(x){return 1/(1+Math.exp(-x))}
+
+function getP2(){return{onset:gi('r_onset'),width:gi('r_width'),dip:gi('r_dip')/100,egain:gi('r_egain')/100,
+  cPi:cpiLevels2[gi('r_cpi')-1],Smin:sminLevels2[gi('r_smin')-1],alpha:emaLevels2[gi('r_ema')-1],dwell:gi('r_dwell')}}
+
+function build(kind,p){
+  const T=200,t=Array.from({length:T},(_,i)=>i);
+  const noise=MODE2===1, rng=rng42();
+  const B=[],Pt=[],X=[],E=[];
+  for(let i=0;i<T;i++){
+    let b,pp,x,e;
+    if(kind==='collapse'){b=Math.exp(-0.006*i);pp=Math.exp(-0.004*i);x=Math.exp(0.006*i);e=1+0.5*Math.exp(0.005*i);}
+    else{const d=bump(i,p.onset,p.width);b=1-p.dip*d;pp=1-(p.dip+0.1)*d;x=1+(p.egain*0.7)*d;
+      e=1+p.egain*d*sigmoid((p.onset-i)/(p.width*0.6));e=e-0.12*sigmoid((i-p.onset-1.5*p.width)/p.width);e=Math.max(0.78,e);}
+    if(noise){b*=1+(rng()-.5)*.08;pp*=1+(rng()-.5)*.06;x*=1+(rng()-.5)*.10;e*=1+(rng()-.5)*.07;}
+    B.push(Math.max(b,1e-6));Pt.push(Math.max(pp,1e-6));X.push(Math.max(x,1e-6));E.push(Math.max(e,1e-6));
+  }
+  const lB=B.map(v=>Math.log(v)),lP=Pt.map(v=>Math.log(v)),lX=X.map(v=>Math.log(v)),lE=E.map(v=>Math.log(v));
+  const rep=t.map(i=>lB[i]+lP[i]),fun=t.map(i=>-lE[i]),per=t.map(i=>-lX[i]);
+  const Phi=t.map(i=>rep[i]+fun[i]+per[i]+(kind==='collapse'?1.4:0.6));
+  const a=p.alpha;
+  const dR=ema(t.map(i=>i===0?0:rep[i]-rep[i-1]),a),dF=ema(t.map(i=>i===0?0:fun[i]-fun[i-1]),a),dP=ema(t.map(i=>i===0?0:per[i]-per[i-1]),a);
+  const PiRaw=t.map(i=>{const vs=[dR[i],dF[i],dP[i]];const m=(vs[0]+vs[1]+vs[2])/3;return vs.reduce((s,v)=>s+(v-m)**2,0)/3});
+  const Tstab=30,baseA=PiRaw.slice(0,Tstab),bm=baseA.reduce((s,v)=>s+v,0)/Tstab;
+  const sig2=Math.max(baseA.reduce((s,v)=>s+(v-bm)**2,0)/Tstab,1e-12);
+  const PiNorm=PiRaw.map(v=>v/sig2);
+  const S=t.map(i=>{const vs=[dR[i],dF[i],dP[i]];const pos=vs.filter(v=>v>0).length,neg=vs.filter(v=>v<0).length;return Math.max(pos,neg)/3});
+  const Delta=Phi.map(v=>v);
+  let pk=0,pkv=-1;for(let i=0;i<T;i++)if(PiNorm[i]>pkv){pkv=PiNorm[i];pk=i;}
+  const lo=Math.min(pk+Math.round(p.width*0.5),T-2),hi=Math.min(pk+Math.round(p.width*2.0),T-1);
+  const dEpost=(E[hi]-E[lo]);
+  return{t,B,Pt,X,E,PiNorm,S,Delta,pk,dEpost};
+}
+
+function drawScenario(idx,sim,piMaxShared){
+  const{t,PiNorm,Delta,E}=sim;
+  const base={responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,
+      backgroundColor:'#1A171B',borderColor:'#2A262C',borderWidth:1,titleColor:'#ECE7E1',bodyColor:'#9A938C'}},
+    scales:{
+      x:{grid:{color:C2.grid},ticks:{color:C2.tick,font:{size:9,family:'monospace'},callback:(v,i)=>i%40===0?i:''}},
+      y:{position:'left',min:0,max:1,grid:{color:C2.grid},ticks:{color:C2.tick,font:{size:9,family:'monospace'},callback:v=>(+v).toFixed(1)}},
+      y1:{position:'right',min:0,grid:{drawOnChartArea:false},ticks:{color:C2.tick,font:{size:9,family:'monospace'},callback:v=>(+v).toFixed(1)}}
+    }};
+  const PiShow=PiNorm.map(v=>piMaxShared>0?Math.min(v/piMaxShared,1):0);
+  const zero=t.map(()=>0);
+  if(CH2[idx])CH2[idx].destroy();
+  CH2[idx]=new Chart(document.getElementById('rc'+idx),{type:'line',
+    data:{labels:t,datasets:[
+      {label:'Π_norm',data:PiShow,borderColor:C2.Pi,borderWidth:2,pointRadius:0,tension:.3,yAxisID:'y'},
+      {label:'ΔΦ',data:Delta,borderColor:C2.delta,borderWidth:2,pointRadius:0,tension:.3,yAxisID:'y1'},
+      {label:'burden E',data:E,borderColor:C2.E,borderWidth:2,pointRadius:0,tension:.3,yAxisID:'y1'},
+      {label:'zero',data:zero,borderColor:C2.zero,borderWidth:1,borderDash:[2,3],pointRadius:0,yAxisID:'y1'}
+    ]},options:base});
+}
+
+function refresh2(){
+  const p=getP2();
+  const c=build('collapse',p),r=build('reorg',p);
+  let piMax=0;for(const v of c.PiNorm)if(v>piMax)piMax=v;for(const v of r.PiNorm)if(v>piMax)piMax=v;
+  drawScenario(0,c,piMax);drawScenario(1,r,piMax);
+  const vb0=document.getElementById('v0badge'),vb1=document.getElementById('v1badge');
+  vb0.textContent=c.dEpost>0?'coming apart':'settling';vb0.className='badge '+(c.dEpost>0?'b-bad':'b-ok');
+  vb1.textContent=r.dEpost>0?'still rising':'reorganizing';vb1.className='badge '+(r.dEpost>0?'b-warn':'b-ok');
+}
+
+window.setMode2=function(m){
+  MODE2=m;
+  ['m2b0','m2b1'].forEach((id,i)=>document.getElementById(id).classList.toggle('active',i===m));
+  document.getElementById('note2-p').style.display=m===0?'block':'none';
+  document.getElementById('note2-m').style.display=m===1?'block':'none';
+  refresh2();
+};
+
+const SL2=[
+  ['r_onset','r_onsetv',v=>parseInt(v)],['r_width','r_widthv',v=>parseInt(v)],
+  ['r_dip','r_dipv',v=>(v/100).toFixed(2)],['r_egain','r_egainv',v=>(v/100).toFixed(2)],
+  ['r_cpi','r_cpiv',v=>cpiLevels2[parseInt(v)-1]+'×'],['r_smin','r_sminv',v=>sminLevels2[parseInt(v)-1].toFixed(2)],
+  ['r_ema','r_emav',v=>emaLevels2[parseInt(v)-1].toFixed(2)],['r_dwell','r_dwellv',v=>parseInt(v)]
+];
+SL2.forEach(([id,vid,fmt])=>{
+  document.getElementById(id).addEventListener('input',function(){
+    document.getElementById(vid).textContent=fmt(parseFloat(this.value));refresh2();
+  });
+});
+refresh2();
+})();
+</script>
+</body>
+</html>
